@@ -1,0 +1,40 @@
+name: keep-warm
+
+# Keeps the Render free-tier service from spinning down, so anyone opening the link
+# (e.g. a recruiter) gets an instant response instead of a ~1-minute cold start.
+#
+# Target URL: set repo variable RENDER_HEALTHZ_URL after deploy
+#   (Settings -> Secrets and variables -> Actions -> Variables -> New variable),
+#   e.g. https://vera-reforged.onrender.com/v1/healthz
+#   If unset, it falls back to the default below.
+#
+# Note: GitHub's scheduled runs are best-effort and can lag a few minutes under load.
+# To conserve Render's free monthly hours, swap to the business-hours cron (commented).
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"          # every 5 min, 24/7 (maximum availability)
+    # - cron: "*/5 2-18 * * *"     # every 5 min, ~07:30-23:59 IST only (saves free hours)
+  workflow_dispatch: {}            # manual "warm it up now" button before a demo
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /v1/healthz
+        run: |
+          URL="${{ vars.RENDER_HEALTHZ_URL || 'https://vera-reforged.onrender.com/v1/healthz' }}"
+          echo "Pinging: $URL"
+          # --max-time 120 so a cold start has time to finish and still count as warm.
+          if curl -fsS --max-time 120 "$URL" -o /tmp/out; then
+            echo "OK: $(cat /tmp/out)"
+          else
+            echo "No healthy response yet (service may be cold-starting, sleeping, or not deployed)."
+          fi
