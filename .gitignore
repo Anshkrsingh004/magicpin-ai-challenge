@@ -1,0 +1,25 @@
+# --- Secrets: never commit the API key ---
+bot/.env
+.env
+*.env
+!.env.example
+!bot/.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# --- Virtual environments ---
+bot/.venv/
+.venv/
+venv/
+
+# --- Generated dataset (regenerate with dataset/generate_dataset.py) ---
+dataset/expanded/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
